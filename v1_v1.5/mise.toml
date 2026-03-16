@@ -1,8 +1,14 @@
 [tasks.gemini]
 description = "Gemini"
-run = "uv run model_inference/gemini/inference_gemini25_native.py --base-dir ./dataset/v1.5/ --task talking_to_other"
+run = "uv run model_inference/gemini/inference_gemini25_native.py --base-dir ./dataset/v1.5/ --task user_interruption"
 
 
 [tasks.clean]
 description = "Gemini"
 run = "uv run model_inference/gemini/inference_gemini25_native.py --base-dir ./dataset/v1.5/ --task talking_to_other --prefix clean_"
+
+[tasks.build]
+run = "docker build --platform linux/amd64 -t duplex:latest -f ./Dockerfile ."
+
+[tasks.run]
+run = "docker run --platform linux/amd64 --env-file ./.env -v $(pwd)/dataset:/app/dataset duplex:latest"

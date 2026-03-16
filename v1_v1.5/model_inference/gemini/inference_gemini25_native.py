@@ -43,6 +43,7 @@ REC_TICK_MS = 10  # Recorder tick interval
 MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+print("GEMINI_API_KEY:", GEMINI_API_KEY)
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY not found in environment. Check .env file.")
 
@@ -436,3 +437,4 @@ if __name__ == "__main__":
     parser.add_argument("--prefix", default="")
     parser.add_argument("--overwrite", action="store_true")
     asyncio.run(batch_process(parser.parse_args()))
+

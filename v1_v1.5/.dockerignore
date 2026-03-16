@@ -1,0 +1,13 @@
+**/*.wav
+**/.DS_Store
+**/.dockerignore
+**/.env*
+**/.gitignore
+**/.venv
+**/Dockerfile
+**/README.md
+**/dataset
+**/example_data
+**/mise.toml
+**/node_modules
+**/shell.nix
