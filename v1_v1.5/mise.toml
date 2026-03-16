@@ -1,0 +1,8 @@
+[tasks.gemini]
+description = "Gemini"
+run = "uv run model_inference/gemini/inference_gemini25_native.py --base-dir ./dataset/v1.5/ --task talking_to_other"
+
+
+[tasks.clean]
+description = "Gemini"
+run = "uv run model_inference/gemini/inference_gemini25_native.py --base-dir ./dataset/v1.5/ --task talking_to_other --prefix clean_"
