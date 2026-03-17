@@ -30,3 +30,10 @@ dependencies = [
 
 [tool.uv.sources]
 utmosv2 = { git = "https://github.com/sarulab-speech/UTMOSv2.git" }
+torch = { index = "pytorch-cpu" }
+torchaudio = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
