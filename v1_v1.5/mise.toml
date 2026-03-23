@@ -1,7 +1,6 @@
 [tasks.gemini]
 description = "Gemini"
-run = "uv run model_inference/gemini/inference_gemini25_native.py --base-dir ./dataset/v1.5/ --task user_interruption"
-
+run = "uv run model_inference/gemini/inference_gemini25_native.py --base-dir ./dataset/v1.5/" # --task user_interruption"
 
 [tasks.clean]
 description = "No interruptions"
@@ -13,3 +12,26 @@ run = "docker build --platform linux/amd64 -t duplex:latest -f ./Dockerfile ."
 [tasks.start]
 depends = ["build"]
 run = "docker run --platform linux/amd64 --env-file ./.env -v $(pwd)/dataset:/app/dataset duplex:latest"
+
+[tasks.evaluate]
+depends = ["start"]
+run = "uv run evaluation/evaluate.py --task user_interruption --root_dir ./dataset/v1.5"
+
+[tasks.transcribe]
+depends = []
+run = "uv run get_transcript/asr.py"
+
+[tasks.download]
+description = "Download v1.5 dataset from Google Drive and extract into dataset/v1.5/"
+run = """
+set -e
+mkdir -p dataset/v1.5
+uv run --with gdown gdown --folder "https://drive.google.com/drive/folders/1ReqGkU-oGC1CCm_U9boPqH5jRt0PNJAs" -O dataset/
+for f in dataset/v1.5/*.zip; do
+  [ -f "$f" ] && unzip -o "$f" -d dataset/v1.5 && rm "$f"
+done
+for f in dataset/v1.5/*.tar.gz; do
+  [ -f "$f" ] && tar -xzf "$f" -C dataset/v1.5 && rm "$f"
+done
+echo "Download and extraction complete."
+"""

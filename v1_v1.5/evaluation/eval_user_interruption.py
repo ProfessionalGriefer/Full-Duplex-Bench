@@ -69,6 +69,7 @@ def eval_user_interruption(root_dir, client):
             out_after_interrupt_path = os.path.join(file_dir, "output.json")
             # check must have output.json, if not, raise error
             if not os.path.exists(out_after_interrupt_path):
+                print("Could not find output.json")
                 raise FileNotFoundError("Required file 'output.json' not found.")
 
             with open(out_after_interrupt_path, "r") as f:
@@ -146,10 +147,11 @@ def eval_user_interruption(root_dir, client):
 
                 score = parsed_output["rating"]
                 score_list.append(score)
-                if latency < 0:
-                    latency_list.append(0)
-                elif latency >= 0:
-                    latency_list.append(latency)
+                if latency:
+                    if latency < 0:
+                        latency_list.append(0)
+                    elif latency >= 0:
+                        latency_list.append(latency)
 
             break
 
