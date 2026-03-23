@@ -33,7 +33,9 @@ def is_ffmpeg_available() -> bool:
     return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
 
 
-def find_combined_wav_files(root_dir: str, case_insensitive: bool = False) -> t.List[str]:
+def find_combined_wav_files(
+    root_dir: str, case_insensitive: bool = False
+) -> t.List[str]:
     target_names = ["A.wav", "B.wav", "combined.wav"]
     results: t.List[str] = []
     for dirpath, _dirnames, filenames in os.walk(root_dir):
@@ -113,7 +115,9 @@ def trim_with_ffmpeg(input_path: str, output_path: str, seconds: int) -> None:
 def trim_with_wave_module(input_path: str, output_path: str, seconds: int) -> None:
     """Trim PCM WAV to the first `seconds` seconds using the stdlib wave module."""
     with contextlib.closing(wave.open(input_path, "rb")) as in_wav:
-        params = in_wav.getparams()  # nchannels, sampwidth, framerate, nframes, comptype, compname
+        params = (
+            in_wav.getparams()
+        )  # nchannels, sampwidth, framerate, nframes, comptype, compname
         if params.comptype not in ("NONE", ""):
             raise RuntimeError("Input WAV is compressed; stdlib wave cannot process it")
 
@@ -151,7 +155,9 @@ def process_file_inplace(path: str, seconds: int, dry_run: bool = False) -> str:
     directory = os.path.dirname(path) or "."
     tmp_file = None
     try:
-        fd, tmp_file = tempfile.mkstemp(prefix=".trim_tmp_", suffix=".wav", dir=directory)
+        fd, tmp_file = tempfile.mkstemp(
+            prefix=".trim_tmp_", suffix=".wav", dir=directory
+        )
         os.close(fd)  # Will reopen via libraries
 
         if is_ffmpeg_available():
@@ -237,5 +243,3 @@ def main(argv: t.Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

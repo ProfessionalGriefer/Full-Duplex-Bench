@@ -43,6 +43,7 @@ import requests
 # Data structures
 # ---------------------------
 
+
 @dataclass
 class Transcript:
     text: str
@@ -52,6 +53,7 @@ class Transcript:
 # ---------------------------
 # File loading helpers
 # ---------------------------
+
 
 def load_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
@@ -89,7 +91,9 @@ def normalize_subset_name(subset: str) -> str:
     )
 
 
-def get_task_specific_prompt(eval_prompts: Dict[str, Any], subset_norm: str) -> Optional[str]:
+def get_task_specific_prompt(
+    eval_prompts: Dict[str, Any], subset_norm: str
+) -> Optional[str]:
     if subset_norm == "daily":
         return None
     target_id = subset_norm  # matches ids in eval_prompts_v2.json
@@ -97,12 +101,12 @@ def get_task_specific_prompt(eval_prompts: Dict[str, Any], subset_norm: str) -> 
     for item in items:
         if item.get("id") == target_id:
             return item.get("prompt", "").strip() or None
-    raise KeyError(
-        f"task_specific_prompts does not contain id='{target_id}'."
-    )
+    raise KeyError(f"task_specific_prompts does not contain id='{target_id}'.")
 
 
-def find_task_staged_reveal_from_file(staged_path: Path, task_id: str) -> Optional[Dict[str, str]]:
+def find_task_staged_reveal_from_file(
+    staged_path: Path, task_id: str
+) -> Optional[Dict[str, str]]:
     """Return staged_reveal dict for the given task_id if found in this file.
 
     Handles structures like:
@@ -182,6 +186,7 @@ def format_chunks_as_lines(chunks: List[Dict[str, Any]]) -> str:
 # Prompt construction
 # ---------------------------
 
+
 def build_full_prompt(
     eval_prompts: Dict[str, Any],
     subset_norm: str,
@@ -241,6 +246,7 @@ def build_full_prompt(
 # Gemini API call with retries
 # ---------------------------
 
+
 def generate_with_gemini(
     api_key: str,
     model: str,
@@ -279,7 +285,7 @@ def generate_with_gemini(
         except requests.RequestException as e:
             if attempt >= max_retries:
                 raise RuntimeError(f"HTTP request failed after {attempt} attempts: {e}")
-            sleep_s = min(60, 2 ** attempt + random.random())
+            sleep_s = min(60, 2**attempt + random.random())
             time.sleep(sleep_s)
             continue
 
@@ -288,8 +294,10 @@ def generate_with_gemini(
                 return resp.json()
             except json.JSONDecodeError as e:
                 if attempt >= max_retries:
-                    raise RuntimeError(f"Invalid JSON response after {attempt} attempts: {e}")
-                sleep_s = min(60, 2 ** attempt + random.random())
+                    raise RuntimeError(
+                        f"Invalid JSON response after {attempt} attempts: {e}"
+                    )
+                sleep_s = min(60, 2**attempt + random.random())
                 time.sleep(sleep_s)
                 continue
 
@@ -304,14 +312,12 @@ def generate_with_gemini(
             except ValueError:
                 sleep_s = None
             if sleep_s is None:
-                sleep_s = min(60, 2 ** attempt + random.random())
+                sleep_s = min(60, 2**attempt + random.random())
             time.sleep(sleep_s)
             continue
 
         # Non-retryable
-        raise RuntimeError(
-            f"Gemini API returned {resp.status_code}: {resp.text}"
-        )
+        raise RuntimeError(f"Gemini API returned {resp.status_code}: {resp.text}")
 
 
 def extract_text_from_response(resp: Dict[str, Any]) -> str:
@@ -333,6 +339,7 @@ def extract_text_from_response(resp: Dict[str, Any]) -> str:
 # JSON sanitization helpers
 # ---------------------------
 
+
 def strip_markdown_fences(text: str) -> str:
     """Remove surrounding markdown code fences like ```json ... ``` if present.
 
@@ -346,7 +353,7 @@ def strip_markdown_fences(text: str) -> str:
             t = t[first_newline + 1 :]
         # Drop trailing fence if present
         if t.endswith("```"):
-            t = t[: -3]
+            t = t[:-3]
     return t.strip()
 
 
@@ -374,9 +381,9 @@ def extract_first_balanced_json(text: str) -> Optional[str]:
         else:
             if ch == '"':
                 in_str = True
-            elif ch == '{':
+            elif ch == "{":
                 depth += 1
-            elif ch == '}':
+            elif ch == "}":
                 depth -= 1
                 if depth == 0:
                     candidate = text[start : i + 1]
@@ -408,26 +415,60 @@ def try_parse_json_from_text(text: str) -> Optional[Dict[str, Any]]:
 # Main
 # ---------------------------
 
+
 def main(argv: Optional[List[str]] = None) -> int:
     # Default model from environment variable or fallback
     default_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-preview-09-2025")
-    
-    parser = argparse.ArgumentParser(description="Evaluate a single item with Gemini LLM-as-a-judge")
-    parser.add_argument("--subset", required=True, help="One of: Daily, Correction, EntityTracking, Safety")
-    parser.add_argument("--task-id", required=True, help="Dataset task id, e.g., Safety.privacy.026")
-    parser.add_argument("--transcript-a", required=True, help="Absolute path to A.json (Examiner)")
-    parser.add_argument("--transcript-b", required=True, help="Absolute path to B.json (Examinee)")
-    parser.add_argument("--eval-prompts", default=None, help="Path to eval_prompts_v2.json (defaults to alongside this script)")
+
+    parser = argparse.ArgumentParser(
+        description="Evaluate a single item with Gemini LLM-as-a-judge"
+    )
+    parser.add_argument(
+        "--subset",
+        required=True,
+        help="One of: Daily, Correction, EntityTracking, Safety",
+    )
+    parser.add_argument(
+        "--task-id", required=True, help="Dataset task id, e.g., Safety.privacy.026"
+    )
+    parser.add_argument(
+        "--transcript-a", required=True, help="Absolute path to A.json (Examiner)"
+    )
+    parser.add_argument(
+        "--transcript-b", required=True, help="Absolute path to B.json (Examinee)"
+    )
+    parser.add_argument(
+        "--eval-prompts",
+        default=None,
+        help="Path to eval_prompts_v2.json (defaults to alongside this script)",
+    )
     parser.add_argument(
         "--staged-files",
         nargs="*",
         default=None,
         help="Paths to staged prompt JSON files to search for the task (defaults to known prompts_staged_*.json in this directory)",
     )
-    parser.add_argument("--model", default=default_model, help=f"Model name (default: {default_model}, can be set via GEMINI_MODEL env var)")
-    parser.add_argument("--api-version", default="v1", choices=["v1","v1beta"], help="Google Generative Language API version")
-    parser.add_argument("--api-key", default=None, help="Gemini API key. If omitted, reads GEMINI_API_KEY env var")
-    parser.add_argument("--out", default=None, help="Output file to write (JSON or .txt). If omitted, prints to stdout")
+    parser.add_argument(
+        "--model",
+        default=default_model,
+        help=f"Model name (default: {default_model}, can be set via GEMINI_MODEL env var)",
+    )
+    parser.add_argument(
+        "--api-version",
+        default="v1",
+        choices=["v1", "v1beta"],
+        help="Google Generative Language API version",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="Gemini API key. If omitted, reads GEMINI_API_KEY env var",
+    )
+    parser.add_argument(
+        "--out",
+        default=None,
+        help="Output file to write (JSON or .txt). If omitted, prints to stdout",
+    )
     args = parser.parse_args(argv)
 
     subset_norm = normalize_subset_name(args.subset)
@@ -475,7 +516,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     api_key = args.api_key or os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise EnvironmentError("API key not provided. Use --api-key or set GEMINI_API_KEY env var.")
+        raise EnvironmentError(
+            "API key not provided. Use --api-key or set GEMINI_API_KEY env var."
+        )
 
     response_json = generate_with_gemini(
         api_key=api_key,
@@ -512,5 +555,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
-

@@ -219,7 +219,6 @@ class BedrockStreamManager:
         dprint(f"⇢ {event_json[:60]}...")
 
     async def _listen_loop(self):
-
         try:
             while self.is_active:
                 output = await self.stream_rsp.await_output()
@@ -290,7 +289,6 @@ async def stream_wav(input_path: Path, output_path: Path, region: str, model: st
             subtype="PCM_16",
         ) as fout:
             while total_out < expected:
-
                 try:
                     data = await asyncio.wait_for(
                         mgr.audio_out_q.get(), timeout=FRAME_DUR
@@ -352,9 +350,7 @@ async def stream_wav(input_path: Path, output_path: Path, region: str, model: st
     wt = asyncio.create_task(writer_task(t0))
 
     for f in frames:
-
         if mgr.barge_in:
-
             await mgr.end_audio()
 
             mgr.next_content()
@@ -376,7 +372,6 @@ async def stream_wav(input_path: Path, output_path: Path, region: str, model: st
 # CLI
 # ---------------------------------------------------------------------
 def main():
-
     for inp in all_wav_files:
         input = Path(inp)
         output = Path(inp.replace("input.wav", "output.wav"))

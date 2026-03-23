@@ -28,7 +28,6 @@ def eval_pause_handling(data_dir):
     take_turn_list = []
 
     for audio_output_file in tqdm(audio_output_files, desc="evaluate"):
-
         TOR = None
 
         # if audio_output_file is not found, raise an error

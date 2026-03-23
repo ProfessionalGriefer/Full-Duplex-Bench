@@ -27,7 +27,9 @@ def summarize_judge_scores(
 
     # Discover processed JSON files based on FDB-v2 flat structure
     for split_dir in base.iterdir():
-        if not split_dir.is_dir() or (examiner_prefix and not split_dir.name.startswith(examiner_prefix)):
+        if not split_dir.is_dir() or (
+            examiner_prefix and not split_dir.name.startswith(examiner_prefix)
+        ):
             continue
 
         json_files = list(split_dir.rglob(f"*{processed_suffix}"))
@@ -134,12 +136,14 @@ def summarize_judge_scores(
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Score results (No Binning)")
-    parser.add_argument("--root_dir", default="../eval_results", help="Directory containing eval results")
+    parser.add_argument(
+        "--root_dir",
+        default="../eval_results",
+        help="Directory containing eval results",
+    )
     parser.add_argument("--prefix", default="", help="Directory prefix to evaluate")
     args = parser.parse_args()
 
-    summarize_judge_scores(
-        base_dir=args.root_dir,
-        examiner_prefix=args.prefix
-    )
+    summarize_judge_scores(base_dir=args.root_dir, examiner_prefix=args.prefix)

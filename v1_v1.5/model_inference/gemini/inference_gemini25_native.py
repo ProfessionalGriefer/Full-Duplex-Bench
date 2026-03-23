@@ -437,4 +437,3 @@ if __name__ == "__main__":
     parser.add_argument("--prefix", default="")
     parser.add_argument("--overwrite", action="store_true")
     asyncio.run(batch_process(parser.parse_args()))
-

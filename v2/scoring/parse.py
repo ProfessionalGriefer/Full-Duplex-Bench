@@ -433,10 +433,15 @@ def process_tree(root_folder: str) -> None:
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="Parse evaluation JSONs.")
-    parser.add_argument("--root_dir", default="../eval_results", help="Directory containing eval results")
+    parser.add_argument(
+        "--root_dir",
+        default="../eval_results",
+        help="Directory containing eval results",
+    )
     args = parser.parse_args()
-    
+
     process_tree(args.root_dir)
     print("All done.")
 

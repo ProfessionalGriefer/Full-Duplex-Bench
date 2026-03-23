@@ -33,7 +33,6 @@ def load_general_split_files(
     """
     rows = []
     for sub in sorted(root_dir.glob("*/general_split.json")):
-
         tag_path = sub.with_name("content_tag.json")
         try:
             tags = json.loads(tag_path.read_text()) if tag_path.exists() else {}
@@ -295,7 +294,6 @@ def run_batch_tests(
     outlier_on: str = "diff",
     outlier_k: Optional[float] = None,
 ) -> pd.DataFrame:
-
     pair_defs = [("pre", "post"), ("clean", "post")]
 
     results = []

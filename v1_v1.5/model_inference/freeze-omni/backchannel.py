@@ -28,12 +28,8 @@ from datetime import datetime
 # create empty configs for argument passing
 configs = {}
 
-configs["model_path"] = (
-    "./models/Freeze-Omni/checkpoints/checkpoints"
-)
-configs["llm_path"] = (
-    "./models/Freeze-Omni/Qwen2-7B-Instruct"
-)
+configs["model_path"] = "./models/Freeze-Omni/checkpoints/checkpoints"
+configs["llm_path"] = "./models/Freeze-Omni/Qwen2-7B-Instruct"
 configs["top_p"] = 0.8
 configs["top_k"] = 20
 configs["temperature"] = 0.8
@@ -447,7 +443,6 @@ def send_pcm(sid):
 
     # iterate through all the wav files
     for input_wav in wav_files:
-
         wav, fs = sf.read(input_wav)
 
         file_name = f"{input_wav.split('/')[4]}/{input_wav.split('/')[-2]}"

@@ -4,8 +4,8 @@ import os
 import shutil
 from pathlib import Path
 
-SESSION_PREFIX = 'session_'
-TARGET_BASENAMES = ['combined.wav', 'A.wav', 'B.wav']
+SESSION_PREFIX = "session_"
+TARGET_BASENAMES = ["combined.wav", "A.wav", "B.wav"]
 
 
 def find_session_dirs(base: Path):
@@ -43,7 +43,7 @@ def process(base: Path, apply: bool = False, verbose: bool = True):
                 print(f"[mkdir] {target_dir}")
             if apply:
                 target_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Move desired wavs (combined, A, B) to the target directory
         for base_name in TARGET_BASENAMES:
             src = session_dir / base_name
@@ -58,7 +58,7 @@ def process(base: Path, apply: bool = False, verbose: bool = True):
                     moved += 1
             else:
                 # Track missing combined.wav only
-                if base_name == 'combined.wav':
+                if base_name == "combined.wav":
                     if verbose:
                         print(f"[skip] missing {src}")
                     skipped += 1
@@ -83,16 +83,24 @@ def process(base: Path, apply: bool = False, verbose: bool = True):
             except OSError:
                 pass
     if verbose:
-        print(f"Summary: moved={moved}, deleted={deleted}, skipped_missing_combined={skipped}")
+        print(
+            f"Summary: moved={moved}, deleted={deleted}, skipped_missing_combined={skipped}"
+        )
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Move combined.wav out of session_* and delete the rest.')
-    parser.add_argument('root', type=Path, help='Root experiments folder (e.g., experiments_gpt_gpt_150_long)')
-    parser.add_argument('--apply', action='store_true', help='Actually perform changes')
+    parser = argparse.ArgumentParser(
+        description="Move combined.wav out of session_* and delete the rest."
+    )
+    parser.add_argument(
+        "root",
+        type=Path,
+        help="Root experiments folder (e.g., experiments_gpt_gpt_150_long)",
+    )
+    parser.add_argument("--apply", action="store_true", help="Actually perform changes")
     args = parser.parse_args()
     process(args.root, apply=args.apply, verbose=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

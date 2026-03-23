@@ -55,8 +55,7 @@ def generate_self_signed_cert(cert_file, key_file):
         .not_valid_before(datetime.utcnow())
         .not_valid_after(
             # Certificate is valid for 1 year
-            datetime.utcnow()
-            + timedelta(days=365)
+            datetime.utcnow() + timedelta(days=365)
         )
         .add_extension(
             x509.SubjectAlternativeName([x509.DNSName("localhost")]),

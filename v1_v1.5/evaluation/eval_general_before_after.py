@@ -703,7 +703,6 @@ def eval_general_split(
     metadata_path: str,
     sr: int = 16000,
 ) -> Dict[str, Any]:
-
     prev_json_path = os.path.join(os.path.dirname(wav_path), "general_split.json")
     existing: Dict[str, Any] = {}
     if os.path.isfile(prev_json_path):

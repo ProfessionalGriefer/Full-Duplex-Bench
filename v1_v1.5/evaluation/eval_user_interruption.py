@@ -28,7 +28,6 @@ def parse_output(data):
 
 
 def eval_user_interruption(root_dir, client):
-
     MODEL_NAME = "gpt-4-turbo"
     seed = 0
 

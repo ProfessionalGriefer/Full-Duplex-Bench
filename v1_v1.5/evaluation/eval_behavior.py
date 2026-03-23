@@ -31,13 +31,11 @@ def extract_json(text: str, key: str = "behaviour"):
 
             pos = text.find("{", end)
         except json.JSONDecodeError:
-
             pos = text.find("{", pos + 1)
     raise ValueError(f"No JSON object with key '{key}' found.")
 
 
 def parse_eval(data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
-
     if isinstance(data, str):
         data = extract_json(data)
     elif not isinstance(data, dict):
@@ -118,7 +116,6 @@ def eval_behavior_all(data_dir, client, task, aggregate=False):
             folders.append(folder_path)
 
     for dir_path in folders:
-
         # first check if tax_cot.json exists
         tax_cot_path = os.path.join(dir_path, "content_tag.json")
         if os.path.exists(tax_cot_path):

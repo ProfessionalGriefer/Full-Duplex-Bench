@@ -453,7 +453,6 @@ def send_pcm(sid):
 
     # iterate through all the wav files
     for input_wav in wav_files:
-
         wav, fs = sf.read(input_wav)
 
         # file_name = input_wav.split("/")[-2]

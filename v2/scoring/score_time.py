@@ -57,7 +57,9 @@ def summarize_judge_scores(
 
     # First pass: Aggregate overall statistics
     for split_dir in base.iterdir():
-        if not split_dir.is_dir() or (examiner_prefix and not split_dir.name.startswith(examiner_prefix)):
+        if not split_dir.is_dir() or (
+            examiner_prefix and not split_dir.name.startswith(examiner_prefix)
+        ):
             continue
 
         json_files = list(split_dir.rglob(f"*{processed_suffix}"))
@@ -144,10 +146,14 @@ def summarize_judge_scores(
 
     # Second pass: Compute binned overlaps and scores
     for split_dir in base.iterdir():
-        if not split_dir.is_dir() or (examiner_prefix and not split_dir.name.startswith(examiner_prefix)):
+        if not split_dir.is_dir() or (
+            examiner_prefix and not split_dir.name.startswith(examiner_prefix)
+        ):
             continue
 
-        json_files = list(split_dir.glob(f"*{processed_suffix}")) # Changed rglob to glob
+        json_files = list(
+            split_dir.glob(f"*{processed_suffix}")
+        )  # Changed rglob to glob
         if not json_files:
             continue
 
@@ -237,7 +243,9 @@ def summarize_judge_scores(
     # === Output Binned CSV ===
     # Formats the CSV dynamically based on the bins array
     bin_pairs = []
-    assert fixed_bins is not None, "If using dynamic bins, adapt the output logic to match."
+    assert fixed_bins is not None, (
+        "If using dynamic bins, adapt the output logic to match."
+    )
     for b_start, b_end in fixed_bins:
         label = f"{int(b_start)}-{int(b_end)}"
         bin_pairs.append((f"TT[{label}]", f"IF[{label}]"))
@@ -277,10 +285,16 @@ def summarize_judge_scores(
         writer.writerows(binned_rows)
     print(f"Exported: {output_csv_binned}")
 
+
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Score results")
-    parser.add_argument("--root_dir", default="../eval_results", help="Directory containing eval results")
+    parser.add_argument(
+        "--root_dir",
+        default="../eval_results",
+        help="Directory containing eval results",
+    )
     parser.add_argument("--prefix", default="", help="Directory prefix to evaluate")
     args = parser.parse_args()
 

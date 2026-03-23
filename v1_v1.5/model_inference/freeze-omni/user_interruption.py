@@ -440,7 +440,6 @@ def send_pcm(sid):
     file_dirs = sorted(glob(root_file_dir))
 
     for file_dir in file_dirs:
-
         file_name = file_dir.split("/")[-1]
         print("File name: ", file_name)
 
