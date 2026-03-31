@@ -3,9 +3,10 @@
 // cli.js: Stream a WAV file to OpenAI Realtime API and record the combined conversation.
 
 import fs from "fs";
-import fetch from "node-fetch";
 import minimist from "minimist";
+import fetch from "node-fetch";
 import pkg from "wrtc";
+
 const { RTCPeerConnection, nonstandard } = pkg;
 import "dotenv/config";
 import wav from "wav";
@@ -13,7 +14,7 @@ import wav from "wav";
 (async () => {
   ///////////////////////////////////////
   // IMPORTANT: Set your OpenAI API key
-  const apiKey = "YOUR_OPENAI_API_KEY"; // Replace with your actual API key
+  const apiKey = process.env.OPENAI_API_KEY;
   ///////////////////////////////////////
 
   // Parse command-line arguments
@@ -24,22 +25,31 @@ import wav from "wav";
 
   // Normalize input path
   const inputRaw = argv.input;
-  const inputPath = Array.isArray(inputRaw) ? inputRaw[inputRaw.length - 1] : inputRaw;
+  const inputPath = Array.isArray(inputRaw)
+    ? inputRaw[inputRaw.length - 1]
+    : inputRaw;
 
   // Normalize output path
   const outputRaw = argv.output;
-  const outputPath = Array.isArray(outputRaw) ? outputRaw[outputRaw.length - 1] : outputRaw || "combined.wav";
+  const outputPath = Array.isArray(outputRaw)
+    ? outputRaw[outputRaw.length - 1]
+    : outputRaw || "combined.wav";
 
   const model = argv.model || "gpt-4o-realtime-preview-2024-12-17";
 
+  console.log(`[cli] Input: ${inputPath}`);
+  console.log(`[cli] Output: ${outputPath}`);
+  console.log(`[cli] Model: ${model}`);
+
   if (!inputPath) {
     console.error(
-      "Usage: cli.js --input <path/to.wav> [--output <out.wav>] [--model <model-name>]"
+      "Usage: cli.js --input <path/to.wav> [--output <out.wav>] [--model <model-name>]",
     );
     process.exit(1);
   }
 
   // Read and decode WAV
+  console.log(`[cli] Reading WAV file: ${inputPath}`);
   const reader = new wav.Reader();
   const inStream = fs.createReadStream(inputPath);
   let format;
@@ -49,6 +59,12 @@ import wav from "wav";
     format = fmt;
   });
   reader.on("data", (data) => pcmChunks.push(data));
+  reader.on("error", (err) => {
+    console.error(`[cli] WAV reader error: ${err.message}`);
+  });
+  inStream.on("error", (err) => {
+    console.error(`[cli] File stream error: ${err.message}`);
+  });
 
   await new Promise((resolve) => {
     reader.on("end", resolve);
@@ -56,24 +72,31 @@ import wav from "wav";
   });
 
   if (!format) {
-    console.error("Failed to parse WAV format from input file.");
+    console.error("[cli] Failed to parse WAV format from input file.");
     process.exit(1);
   }
+  console.log(
+    `[cli] WAV format: ${format.sampleRate}Hz, ${format.bitDepth}bit, ${format.channels}ch`,
+  );
 
   // Flatten samples to Int16Array (downmix to mono)
   let samples;
   const { sampleRate: origSampleRate, bitDepth, channels } = format;
   const bytesPerSample = bitDepth / 8;
-  const totalFrames = Buffer.concat(pcmChunks).length / (bytesPerSample * channels);
+  const totalFrames =
+    Buffer.concat(pcmChunks).length / (bytesPerSample * channels);
   samples = new Int16Array(totalFrames);
   const buffer = Buffer.concat(pcmChunks);
   for (let i = 0; i < totalFrames; i++) {
     let acc = 0;
     for (let c = 0; c < channels; c++) {
       const offset = (i * channels + c) * bytesPerSample;
-      const sample = bitDepth === 32
-        ? Math.round(Math.max(-1, Math.min(1, buffer.readFloatLE(offset))) * 32767)
-        : buffer.readInt16LE(offset);
+      const sample =
+        bitDepth === 32
+          ? Math.round(
+              Math.max(-1, Math.min(1, buffer.readFloatLE(offset))) * 32767,
+            )
+          : buffer.readInt16LE(offset);
       acc += sample;
     }
     samples[i] = Math.round(acc / channels);
@@ -109,59 +132,110 @@ import wav from "wav";
 
   // Session token
   if (!apiKey) {
-    console.error("Missing OPENAI_API_KEY in .env");
+    console.error("[cli] Missing OPENAI_API_KEY in environment");
     process.exit(1);
   }
+  console.log("[cli] Requesting session token...");
   const sess = await fetch("https://api.openai.com/v1/realtime/sessions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify(
-    { 
-      model: model, 
-      voice: "alloy" //"verse"
-    }
-    ),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: model,
+      voice: "alloy", //"verse"
+    }),
   });
+  console.log(`[cli] Session response status: ${sess.status}`);
   const tokData = await sess.json();
   if (!tokData.client_secret?.value) {
-    console.error("Failed to obtain session token:", tokData);
+    console.error(
+      "[cli] Failed to obtain session token:",
+      JSON.stringify(tokData, null, 2),
+    );
     process.exit(1);
   }
   const token = tokData.client_secret.value;
+  console.log("[cli] Session token obtained");
 
   // WebRTC setup
+  console.log("[cli] Setting up WebRTC connection...");
   const pc = new RTCPeerConnection();
   const source = new nonstandard.RTCAudioSource();
   const track = source.createTrack();
   pc.addTrack(track);
-  const gptBuffers = [];  // { samples: Int16Array, time: bigint }
+  const gptBuffers = []; // { samples: Int16Array, time: bigint }
   let done = false;
 
+  pc.onconnectionstatechange = () => {
+    console.log(`[cli] WebRTC connection state: ${pc.connectionState}`);
+  };
+  pc.oniceconnectionstatechange = () => {
+    console.log(`[cli] ICE connection state: ${pc.iceConnectionState}`);
+  };
+
   pc.ontrack = ({ track: incomingTrack }) => {
+    console.log("[cli] Received remote audio track");
     const sink = new nonstandard.RTCAudioSink(incomingTrack);
     sink.ondata = ({ samples }) => {
-      gptBuffers.push({ samples: new Int16Array(samples), time: process.hrtime.bigint() });
+      gptBuffers.push({
+        samples: new Int16Array(samples),
+        time: process.hrtime.bigint(),
+      });
     };
   };
 
   const dc = pc.createDataChannel("oai_events");
+  dc.onopen = () => {
+    console.log("[cli] Data channel opened");
+  };
+  dc.onerror = (err) => {
+    console.error("[cli] Data channel error:", err);
+  };
+  dc.onclose = () => {
+    console.log("[cli] Data channel closed");
+  };
   dc.onmessage = (e) => {
     const m = JSON.parse(e.data);
+    console.log(`[cli] Event: ${m.type}`);
+    if (m.type === "error") {
+      console.error("[cli] API error:", JSON.stringify(m, null, 2));
+    }
     if (m.type === "response.done") done = true;
   };
 
   // SDP exchange
+  console.log("[cli] Creating SDP offer...");
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
-  const sigRes = await fetch(`https://api.openai.com/v1/realtime?model=${model}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/sdp" },
-    body: offer.sdp,
-  });
+  console.log("[cli] Sending SDP offer to OpenAI...");
+  const sigRes = await fetch(
+    `https://api.openai.com/v1/realtime?model=${model}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/sdp",
+      },
+      body: offer.sdp,
+    },
+  );
+  console.log(`[cli] SDP response status: ${sigRes.status}`);
+  if (!sigRes.ok) {
+    const errBody = await sigRes.text();
+    console.error(`[cli] SDP exchange failed: ${errBody}`);
+    process.exit(1);
+  }
   const ans = await sigRes.text();
   await pc.setRemoteDescription({ type: "answer", sdp: ans });
+  console.log("[cli] SDP exchange complete");
 
   // Record start time and Stream input
+  const totalFrameCount = Math.ceil(inputPcm.length / frameBytes);
+  console.log(
+    `[cli] Streaming ${totalFrameCount} frames (${((totalFrameCount * 10) / 1000).toFixed(1)}s of audio)...`,
+  );
   const startTime = process.hrtime.bigint();
   for (let off = 0; off < inputPcm.length; off += frameBytes) {
     let chunk = inputPcm.slice(off, off + frameBytes);
@@ -171,32 +245,52 @@ import wav from "wav";
     }
     const temp = new Int16Array(chunk.buffer, chunk.byteOffset, frameSize);
     const frame = Int16Array.from(temp);
-    source.onData({ samples: frame, sampleRate, bitsPerSample: 16, channelCount: 1 });
+    source.onData({
+      samples: frame,
+      sampleRate,
+      bitsPerSample: 16,
+      channelCount: 1,
+    });
     await new Promise((r) => setTimeout(r, 10));
   }
 
   // Signal end of input
+  console.log("[cli] Finished streaming input, waiting for response...");
   track.stop();
 
-  // Wait
-  while (!done) await new Promise((r) => setTimeout(r, 50));
+  // Wait with timeout
+  const timeoutMs = 60000;
+  const waitStart = Date.now();
+  while (!done) {
+    if (Date.now() - waitStart > timeoutMs) {
+      console.error(
+        `[cli] Timed out after ${timeoutMs / 1000}s waiting for response.done. ` +
+          `Received ${gptBuffers.length} audio chunks so far.`,
+      );
+      process.exit(1);
+    }
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  console.log(
+    `[cli] Response complete. Received ${gptBuffers.length} audio chunks.`,
+  );
 
   // First, save GPT response as a separate WAV file
   console.log("Saving GPT response...");
-  
+
   // Concatenate all GPT audio chunks
   let totalGptSamples = 0;
   gptBuffers.forEach(({ samples }) => {
     totalGptSamples += samples.length;
   });
-  
+
   const gptAudio = new Int16Array(totalGptSamples);
   let gptOffset = 0;
   gptBuffers.forEach(({ samples }) => {
     gptAudio.set(samples, gptOffset);
     gptOffset += samples.length;
   });
-  
+
   // Calculate when GPT response should start (based on first buffer timestamp)
   let gptStartOffset = 0;
   if (gptBuffers.length > 0) {
@@ -212,24 +306,33 @@ import wav from "wav";
   let gptAudioTruncated = gptAudio;
   if (gptAudio.length > inputSamples.length) {
     gptAudioTruncated = gptAudio.slice(0, inputSamples.length);
-    console.log("Note: GPT response file was truncated to match input duration");
+    console.log(
+      "Note: GPT response file was truncated to match input duration",
+    );
   }
 
   // Write GPT response to separate file
-  const gptPath = outputPath.replace('.wav', '_gpt_response.wav');
+  const gptPath = outputPath.replace(".wav", "_gpt_response.wav");
   const gptWriter = new wav.Writer({ sampleRate, channels: 1, bitDepth: 16 });
   const gptStream = fs.createWriteStream(gptPath);
   gptWriter.pipe(gptStream);
-  gptWriter.write(Buffer.from(gptAudioTruncated.buffer, gptAudioTruncated.byteOffset, gptAudioTruncated.byteLength));
+  gptWriter.write(
+    Buffer.from(
+      gptAudioTruncated.buffer,
+      gptAudioTruncated.byteOffset,
+      gptAudioTruncated.byteLength,
+    ),
+  );
   gptWriter.end();
-  
+
   // Wait for GPT file to finish writing
   await new Promise((resolve) => {
-    gptStream.on('finish', resolve);
+    gptStream.on("finish", resolve);
   });
   console.log(`GPT response saved to: ${gptPath}`);
-  
+
   dc.close();
   pc.close();
   process.exit(0);
 })();
+
