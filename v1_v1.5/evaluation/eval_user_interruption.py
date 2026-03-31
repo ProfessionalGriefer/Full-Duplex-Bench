@@ -64,6 +64,16 @@ def eval_user_interruption(root_dir, client):
     for file_dir in tqdm(sorted(file_dirs)):
         # read the json file
         while True:
+            rating_path = os.path.join(file_dir, "rating.json")
+            if os.path.exists(rating_path):
+                print(f"Skipping {file_dir} (rating.json already exists)")
+                with open(rating_path, "r") as f:
+                    parsed_output = json.load(f)
+                if "rating" in parsed_output:
+                    score_list.append(parsed_output["rating"])
+                    take_turn_list.append(1)
+                break
+
             print(f"Processing {file_dir} ...")
 
             out_after_interrupt_path = os.path.join(file_dir, "output.json")

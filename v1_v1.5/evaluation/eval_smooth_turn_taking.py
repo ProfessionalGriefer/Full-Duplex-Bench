@@ -3,6 +3,7 @@ import json
 import re
 import argparse
 from tqdm import tqdm
+from loguru import logger
 
 turn_duration_threshold = 1
 turn_num_words_threshold = 3
@@ -20,18 +21,24 @@ def eval_smooth_turn_taking(data_dir):
     audio_input_files = []
     audio_output_files = []
 
+    print(data_dir)
     for folder in os.listdir(data_dir):
+        if folder.endswith("errors.log"):
+            continue
         if folder.endswith(".DS_Store"):
             continue
         if folder.endswith(".md"):
             continue
 
         for file_o in os.listdir(os.path.join(data_dir, folder)):
+            print(file_o)
             if file_o.endswith("output.json"):
                 audio_output_files.append(os.path.join(data_dir, folder, file_o))
                 for file_i in os.listdir(os.path.join(data_dir, folder)):
                     if file_i.endswith("turn_taking.json"):
                         audio_input_files.append(os.path.join(data_dir, folder, file_i))
+    print("input", audio_input_files)
+    print("output", audio_output_files)
 
     take_turn_list = []
     latency_list = []

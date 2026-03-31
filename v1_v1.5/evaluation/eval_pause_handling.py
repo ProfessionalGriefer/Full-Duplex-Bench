@@ -16,6 +16,8 @@ def eval_pause_handling(data_dir):
     audio_output_files = []
 
     for folder in os.listdir(data_dir):
+        if folder.endswith("errors.log"):
+            continue
         if folder.endswith(".DS_Store"):
             continue
         if folder.endswith(".md"):
