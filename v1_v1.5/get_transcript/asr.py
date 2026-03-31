@@ -3,21 +3,25 @@ import json
 import argparse
 from glob import glob
 
+import torch
 import soundfile as sf
 import nemo.collections.asr as nemo_asr
 from tqdm import tqdm
+from loguru import logger
 
 MODEL_NAME = ""
 
 
 def get_time_aligned_transcription(data_path, task):
     # Collect all output.wav files under the root directory
-    audio_paths = sorted(glob(f"{data_path}/*/{MODEL_NAME}output.wav"))
+    audio_paths = sorted(glob(f"{data_path}/*/*/{MODEL_NAME}output.wav"))
+    logger.info(audio_paths)
 
-    # Load the pretrained NeMo ASR model and move to GPU
+    # Load the pretrained NeMo ASR model and move to GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     asr_model = nemo_asr.models.ASRModel.from_pretrained(
         model_name="nvidia/parakeet-tdt-0.6b-v2"
-    ).cuda()
+    ).to(device)
 
     for audio_path in tqdm(audio_paths):
         print(audio_path)
