@@ -396,28 +396,37 @@ async def process_single_file(
 
 
 async def batch_process(args):
-    """Process all files."""
+    """Process all files with concurrency."""
     base_dir = os.path.expanduser(args.base_dir)
     pattern = os.path.join(base_dir, args.task or "*", "*", f"{args.prefix}input.wav")
     files = sorted(glob(pattern))
     print(f"Found {len(files)} files.")
 
+    max_concurrent = args.concurrency
+    semaphore = asyncio.Semaphore(max_concurrent)
     success = 0
-    for i, f in enumerate(files):
-        print(f"\n[{i + 1}/{len(files)}] {f}")
+    lock = asyncio.Lock()
+
+    async def process_one(i, f):
+        nonlocal success
         out_wav = os.path.join(os.path.dirname(f), "output.wav")
 
         if os.path.exists(out_wav) and not args.overwrite:
-            print("Skip")
-            success += 1
-            continue
-
-        try:
-            if await process_single_file(f, out_wav, args.overwrite):
+            print(f"[{i + 1}/{len(files)}] Skip {f}")
+            async with lock:
                 success += 1
-        except Exception as e:
-            print(f"Failed: {e}")
+            return
 
+        async with semaphore:
+            print(f"[{i + 1}/{len(files)}] {f}")
+            try:
+                if await process_single_file(f, out_wav, args.overwrite):
+                    async with lock:
+                        success += 1
+            except Exception as e:
+                print(f"[{i + 1}/{len(files)}] Failed: {e}")
+
+    await asyncio.gather(*(process_one(i, f) for i, f in enumerate(files)))
     print(f"\nDone. {success}/{len(files)}")
 
 
@@ -434,4 +443,5 @@ if __name__ == "__main__":
     parser.add_argument("--task", default=None)
     parser.add_argument("--prefix", default="")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--concurrency", type=int, default=10, help="Max concurrent API sessions")
     asyncio.run(batch_process(parser.parse_args()))

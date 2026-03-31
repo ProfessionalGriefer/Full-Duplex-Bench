@@ -48,5 +48,5 @@ Thumbs.db
 # *.mp3
 
 # V2 Architecture
-v2/node_modules/
+node_modules
 v2/outputs/
