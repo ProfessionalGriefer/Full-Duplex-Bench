@@ -2,10 +2,9 @@
 
 // cli.js: Stream a WAV file to OpenAI Realtime API and record the combined conversation.
 
+import pkg from "@roamhq/wrtc";
 import fs from "fs";
 import minimist from "minimist";
-import fetch from "node-fetch";
-import pkg from "wrtc";
 
 const { RTCPeerConnection, nonstandard } = pkg;
 import "dotenv/config";
@@ -46,6 +45,11 @@ import wav from "wav";
       "Usage: cli.js --input <path/to.wav> [--output <out.wav>] [--model <model-name>]",
     );
     process.exit(1);
+  }
+
+  if (fs.existsSync(outputPath)) {
+    console.log(`[cli] Output file already exists, skipping: ${outputPath}`);
+    process.exit(0);
   }
 
   // Read and decode WAV
@@ -259,7 +263,7 @@ import wav from "wav";
   track.stop();
 
   // Wait with timeout
-  const timeoutMs = 60000;
+  const timeoutMs = 120_0000;
   const waitStart = Date.now();
   while (!done) {
     if (Date.now() - waitStart > timeoutMs) {
@@ -335,4 +339,3 @@ import wav from "wav";
   pc.close();
   process.exit(0);
 })();
-

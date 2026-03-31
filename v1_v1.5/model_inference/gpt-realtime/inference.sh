@@ -5,6 +5,7 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DATASET_DIR="$1"
 MAX_JOBS="${2:-4}"
 ERROR_LOG="$DATASET_DIR/errors.log"
@@ -44,6 +45,11 @@ process_folder() {
 
   echo "[inference] [$BASENAME] Starting processing..."
 
+  if [[ -f "$FINAL_WAV" ]]; then
+    echo "[inference] [$BASENAME] Skipping (output.wav already exists)"
+    return 0
+  fi
+
   if [[ ! -f "$INPUT_WAV" ]]; then
     echo "[inference] [$BASENAME] ERROR: input.wav not found at $INPUT_WAV"
     echo "[$FOLDER] input wav not found" >>"$ERROR_LOG"
@@ -53,7 +59,7 @@ process_folder() {
   echo "[inference] [$BASENAME] Running CLI: input=$INPUT_WAV output=$OUTPUT_WAV"
 
   # Run the CLI
-  if ! bun run cli -- --input "$INPUT_WAV" --output "$OUTPUT_WAV" >"$FOLDER/cli.log" 2>&1; then
+  if ! node "$SCRIPT_DIR/cli.js" --input "$INPUT_WAV" --output "$OUTPUT_WAV" >"$FOLDER/cli.log" 2>&1; then
     echo "[inference] [$BASENAME] ERROR: CLI failed (exit code: $?). Log tail:"
     tail -20 "$FOLDER/cli.log" | sed "s/^/  [$BASENAME] /"
     echo "[$FOLDER] CLI failed (see $FOLDER/cli.log)" >>"$ERROR_LOG"
