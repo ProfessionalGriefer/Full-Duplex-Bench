@@ -398,9 +398,7 @@ async def process_single_file(
 async def batch_process(args):
     """Process all files."""
     base_dir = os.path.expanduser(args.base_dir)
-    pattern = os.path.join(
-        base_dir, args.task or "*", "*", "*", f"{args.prefix}input.wav"
-    )
+    pattern = os.path.join(base_dir, args.task or "*", "*", f"{args.prefix}input.wav")
     files = sorted(glob(pattern))
     print(f"Found {len(files)} files.")
 

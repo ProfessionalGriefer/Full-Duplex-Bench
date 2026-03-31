@@ -1,3 +1,5 @@
+from pathlib import Path
+from loguru import logger
 import os
 import json
 import numpy as np
@@ -5,7 +7,8 @@ from scipy.spatial.distance import jensenshannon
 from scipy.interpolate import interp1d
 
 from silero_vad import load_silero_vad, get_speech_timestamps
-import torchaudio
+import torch
+import soundfile as sf
 import argparse
 
 # Define the hyperparameters
@@ -15,7 +18,8 @@ time_threshold = 3
 
 
 def eval_backchannel(data_dir):
-    gt_distribution_path = "./icc_gt_distribution.json"
+    logger.info(Path.cwd())
+    gt_distribution_path = "./evaluation/icc_gt_distribution.json"
     with open(gt_distribution_path, "r") as f:
         gt_distribution = json.load(f)
 
@@ -23,7 +27,9 @@ def eval_backchannel(data_dir):
     jsd_list = []
     TOR_list = []
     freq_list = []
-    for spk in os.listdir(data_dir):
+    dirs = os.listdir(data_dir)
+    logger.info(dirs)
+    for spk in dirs:
         if not spk.isdigit():
             continue
 
@@ -31,7 +37,8 @@ def eval_backchannel(data_dir):
         if not os.path.exists(out_wav_path):
             raise FileNotFoundError("Required file 'output.wav' not found.")
 
-        wav, sr = torchaudio.load(out_wav_path)
+        wav_np, sr = sf.read(out_wav_path)
+        wav = torch.from_numpy(wav_np).float().unsqueeze(0)
 
         segments = get_speech_timestamps(
             wav,
@@ -115,6 +122,12 @@ def eval_backchannel(data_dir):
 
         if len(backchannel_prediction) == 0:
             js_divergence = 1
+        elif spk not in gt_distribution:
+            print(
+                f"Warning: speaker {spk} not in ground truth distribution, skipping JSD"
+            )
+            js_divergence = 1
+            continue
         else:
             time_intervals = [0 for i in range(int(max_end_time / window_size) + 1)]
 
